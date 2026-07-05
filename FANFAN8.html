@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="screen-orientation" content="landscape">
+<meta name="x5-orientation" content="landscape">
+<title>FNAF 1</title>
+<style>
+* { box-sizing: border-box; user-select: none; font-family: 'Courier New', monospace; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; background: #0a0a0a; display: flex; justify-content: center; align-items: center; overflow: hidden; touch-action: manipulation; position: fixed; top: 0; left: 0; }
+
+#rotate-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; color: #fff; z-index: 9999; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; font-size: 20px; }
+#rotate-overlay .icon { font-size: 60px; margin-bottom: 20px; animation: rotatePhone 2s infinite; }
+@keyframes rotatePhone { 0% { transform: rotate(0deg); } 50% { transform: rotate(90deg); } 100% { transform: rotate(0deg); } }
+@media (orientation: portrait) and (max-width: 768px) { #rotate-overlay { display: flex !important; } #gameContainer { display: none !important; } }
+
+#gameContainer { position: relative; width: 100%; height: 100%; max-width: 900px; max-height: 1000px; background: #1a1a1a; border: 2px solid #333; box-shadow: 0 0 50px rgba(255,0,0,0.2); overflow: hidden; }
+#office { position: absolute; width: 100%; height: 100%; background: radial-gradient(ellipse at center, #2a1a1a 0%, #0a0a0a 100%); display: flex; flex-direction: column; align-items: center; padding: 4px 8px; transition: 0.3s; }
+#office.danger-flash { background: radial-gradient(ellipse at center, #3a0000 0%, #0a0a0a 100%); }
+#office.safe-flash { background: radial-gradient(ellipse at center, #003a00 0%, #0a0a0a 100%); transition: 0.1s; }
+
+/* ===== КНОПКА ПАУЗЫ ===== */
+#pauseBtn {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  padding: clamp(4px, 0.8vw, 10px) clamp(10px, 2vw, 30px);
+  font-size: clamp(11px, 2vw, 22px);
+  font-weight: bold;
+  color: #fff;
+  background: rgba(0,0,0,0.7);
+  border: 2px solid #444;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+  touch-action: manipulation;
+  letter-spacing: 1px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+#pauseBtn:active { background: #333; transform: translateX(-50%) scale(0.95); }
+
+/* ===== КНОПКА ОТКРЫТИЯ ЧИТ-МЕНЮ (ТЕЛЕФОН) ===== */
+#cheatToggleBtn {
+  position: absolute;
+  top: 46px;
+  left: 6px;
+  z-index: 61;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.7);
+  border: 2px solid #ff8800;
+  color: #ff8800;
+  font-size: 12px;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  box-shadow: 0 0 20px rgba(255,136,0,0.2);
+  transition: 0.3s;
+}
+#cheatToggleBtn:active { transform: scale(0.9); background: #333; }
+#cheatToggleBtn.show { border-color: #0f0; color: #0f0; box-shadow: 0 0 30px rgba(0,255,0,0.3); }
+
+/* ===== ЧИТ-МЕНЮ ===== */
+#cheatMenu {
+  position: absolute;
+  top: 74px;
+  left: 6px;
+  z-index: 60;
+  background: rgba(0,0,0,0.85);
+  border: 2px solid #ff8800;
+  border-radius: 6px;
+  padding: 4px 6px;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 90px;
+  box-shadow: 0 0 30px rgba(255,136,0,0.2);
+}
+#cheatMenu.show { display: flex; }
+#cheatMenu .cheat-title {
+  color: #ff8800;
+  font-size: clamp(8px, 1.5vw, 12px);
+  font-weight: bold;
+  text-align: center;
+  border-bottom: 1px solid #444;
+  padding-bottom: 2px;
+  margin-bottom: 2px;
+  letter-spacing: 1px;
+}
+#cheatMenu .cheat-btn {
+  padding: clamp(2px, 0.4vw, 5px) clamp(4px, 0.8vw, 10px);
+  font-size: clamp(7px, 1.2vw, 11px);
+  font-weight: bold;
+  color: #aaa;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid #444;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: 0.3s;
+  touch-action: manipulation;
+  text-align: left;
+  letter-spacing: 0.5px;
+}
+#cheatMenu .cheat-btn:active { background: #333; transform: scale(0.95); }
+#cheatMenu .cheat-btn.active { border-color: #0f0; color: #0f0; background: rgba(0,255,0,0.1); }
+#cheatMenu .cheat-btn .key { color: #ff8800; font-weight: bold; margin-right: 4px; }
+
+/* ===== ПАУЗА ===== */
+#pauseOverlay {
+  position: absolute;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 700;
+  text-align: center;
+  padding: 20px;
+}
+#pauseOverlay.show { display: flex; }
+#pauseOverlay .pause-title { font-size: clamp(24px, 5vw, 56px); font-weight: bold; color: #ff0000; text-shadow: 0 0 60px #ff0000; margin-bottom: 20px; }
+#pauseOverlay .pause-sub { font-size: clamp(14px, 2.5vw, 28px); color: #ff6666; margin-bottom: 30px; }
+#pauseOverlay .btn-resume {
+  padding: clamp(10px, 1.8vw, 20px) clamp(24px, 5vw, 70px);
+  font-size: clamp(16px, 3vw, 30px);
+  font-weight: bold;
+  color: #0f0;
+  background: transparent;
+  border: 3px solid #0f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 0.3s;
+  text-shadow: 0 0 30px #0f0066;
+  box-shadow: 0 0 40px rgba(0,255,0,0.1);
+  letter-spacing: 2px;
+  touch-action: manipulation;
+}
+#pauseOverlay .btn-resume:active { background: #0f0; color: #000; transform: scale(0.95); }
+
+#nickMenu {
+  position: absolute; width: 100%; height: 100%; background: radial-gradient(ellipse at center, #1a0a0a 0%, #000000 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 550; transition: opacity 0.8s ease; padding: 20px; text-align: center; }
+#nickMenu.hidden { opacity: 0; pointer-events: none; }
+#nickMenu .title { font-size: clamp(16px, 3.5vw, 36px); font-weight: bold; color: #ff0000; text-shadow: 0 0 40px #ff0000; margin-bottom: 10px; }
+#nickMenu .sub { font-size: clamp(12px, 2.5vw, 20px); color: #ff6666; margin-bottom: 20px; }
+#nickMenu input { padding: clamp(8px, 1.5vw, 18px) clamp(10px, 2.5vw, 30px); font-size: clamp(14px, 3vw, 28px); background: #111; color: #0f0; border: 2px solid #0f0; border-radius: 10px; text-align: center; width: 80%; max-width: 400px; font-family: 'Courier New', monospace; outline: none; }
+#nickMenu input:focus { border-color: #ff0000; box-shadow: 0 0 30px rgba(255,0,0,0.3); }
+#nickMenu .btn-start { margin-top: 20px; padding: clamp(8px, 1.5vw, 18px) clamp(20px, 4vw, 60px); font-size: clamp(14px, 3vw, 28px); font-weight: bold; color: #0f0; background: transparent; border: 3px solid #0f0; border-radius: 12px; cursor: pointer; transition: 0.3s; text-shadow: 0 0 30px #0f0066; box-shadow: 0 0 40px rgba(0,255,0,0.1); letter-spacing: 2px; touch-action: manipulation; }
+#nickMenu .btn-start:active { background: #0f0; color: #000; transform: scale(0.95); box-shadow: 0 0 80px rgba(0,255,0,0.3); }
+#nickMenu .welcome-msg { margin-top: 15px; font-size: clamp(12px, 2.5vw, 20px); color: #ffaa00; text-shadow: 0 0 30px #ffaa0066; min-height: 30px; }
+
+#menu { position: absolute; width: 100%; height: 100%; background: radial-gradient(ellipse at center, #1a0a0a 0%, #000000 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 500; transition: opacity 0.8s ease; padding: 20px; text-align: center; }
+#menu.hidden { opacity: 0; pointer-events: none; }
+#menu .title { font-size: clamp(22px, 4.5vw, 52px); font-weight: bold; color: #ff0000; text-shadow: 0 0 60px #ff0000, 0 0 120px #ff000066; letter-spacing: 4px; line-height: 1.2; }
+#menu .title .sub { display: block; font-size: clamp(12px, 2.5vw, 24px); color: #ff4444; text-shadow: 0 0 30px #ff000066; letter-spacing: 6px; margin-top: 4px; }
+#menu .btn-play { margin-top: clamp(16px, 3vw, 40px); padding: clamp(8px, 1.5vw, 18px) clamp(20px, 4vw, 60px); font-size: clamp(14px, 3vw, 28px); font-weight: bold; color: #0f0; background: transparent; border: 3px solid #0f0; border-radius: 12px; cursor: pointer; transition: 0.3s; text-shadow: 0 0 30px #0f0066; box-shadow: 0 0 40px rgba(0,255,0,0.1); letter-spacing: 2px; touch-action: manipulation; }
+#menu .btn-play:active { background: #0f0; color: #000; transform: scale(0.95); box-shadow: 0 0 80px rgba(0,255,0,0.3); }
+#menu .version { position: absolute; bottom: 15px; color: #444; font-size: clamp(8px, 1.5vw, 12px); letter-spacing: 1px; }
+
+/* ===== ЭКРАН ПОБЕДЫ ===== */
+#winScreen {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at center, #0a1a0a 0%, #000000 100%);
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 600;
+  padding: 20px;
+  text-align: center;
+}
+#winScreen.show { display: flex; }
+#winScreen .win-title {
+  font-size: clamp(22px, 5vw, 48px);
+  font-weight: bold;
+  color: #0f0;
+  text-shadow: 0 0 60px #0f0, 0 0 120px #0f0066;
+  letter-spacing: 3px;
+  margin-bottom: 6px;
+}
+#winScreen .win-sub {
+  font-size: clamp(14px, 3vw, 24px);
+  color: #88ff88;
+  text-shadow: 0 0 30px #0f0066;
+  margin-bottom: 10px;
+}
+/* Имя игрока (Alexfitcool) */
+#winScreen .win-nick {
+  font-size: clamp(32px, 7vw, 60px);
+  font-weight: bold;
+  color: #ffaa00;
+  text-shadow: 0 0 40px #ffaa0066, 0 0 80px #ffaa0044;
+  letter-spacing: 4px;
+  margin-bottom: 20px;
+  border: 2px solid #ffaa00;
+  padding: 8px 30px;
+  border-radius: 12px;
+  background: rgba(255,170,0,0.1);
+  box-shadow: 0 0 60px rgba(255,170,0,0.2);
+}
+#winScreen .win-emoji {
+  font-size: clamp(40px, 8vw, 80px);
+  margin-bottom: 10px;
+}
+#winScreen .btn-restart {
+  padding: clamp(10px, 2vw, 18px) clamp(20px, 4vw, 50px);
+  font-size: clamp(14px, 2.8vw, 24px);
+  font-weight: bold;
+  color: #fff;
+  background: transparent;
+  border: 3px solid #0f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 0.3s;
+  text-shadow: 0 0 30px #0f0066;
+  box-shadow: 0 0 40px rgba(0,255,0,0.1);
+  letter-spacing: 2px;
+  touch-action: manipulation;
+  margin-top: 8px;
+}
+#winScreen .btn-restart:active { background: #0f0; color: #000; transform: scale(0.95); box-shadow: 0 0 80px rgba(0,255,0,0.3); }
+
+/* ===== HUD ===== */
+#hud {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 8px;
+  color: #0f0;
+  font-size: clamp(8px, 1.5vw, 16px);
+  text-shadow: 0 0 10px #0f0;
+  z-index: 10;
+  background: rgba(0,0,0,0.7);
+  border-bottom: 2px solid #0f0;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  margin-top: 34px;
+}
+#power { color: #ffaa00; font-weight: bold; transition: 0.3s; font-size: clamp(10px, 2vw, 18px); }
+#power.low { color: #ff0000; animation: pulse 0.5s infinite; }
+#status { font-size: clamp(8px, 1.5vw, 16px); margin-left: 6px; }
+#foxyTimer {
+  color: #ff8800;
+  font-weight: bold;
+  font-size: clamp(9px, 1.8vw, 18px);
+  text-shadow: 0 0 20px #ff880066;
+  min-width: 60px;
+  text-align: right;
+  padding-left: 10px;
+  margin-left: auto;
+}
+#foxyTimer.danger { color: #ff0000; animation: pulse 0.5s infinite; }
+#foxyTimer.running { color: #ff4444; text-shadow: 0 0 30px #ff0000; }
+
+#digitalTimer {
+  color: #ff3333;
+  font-weight: bold;
+  font-size: clamp(12px, 2.5vw, 24px);
+  text-shadow: 0 0 20px #ff0000;
+  display: none;
+}
+@media (max-width: 768px) {
+  #digitalTimer { display: inline-block; }
+  #clockContainer { display: none; }
+}
+
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+/* ===== КАРТА ===== */
+#map {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr 1fr;
+  gap: clamp(1.5px, 0.3vw, 8px);
+  width: 96%;
+  flex: 1;
+  margin: 3px 0;
+  background: rgba(0,0,0,0.85);
+  padding: clamp(1.5px, 0.3vw, 10px);
+  border: 2px solid #333;
+  transition: 0.3s;
+  min-height: 100px;
+  max-height: 420px;
+}
+@media (min-width: 800px) {
+  #map { max-height: 500px; min-height: 300px; gap: 10px; padding: 14px; }
+  .room { min-height: 60px !important; font-size: 16px !important; }
+  .room .room-name { font-size: 13px !important; }
+  .room .room-animatronic { font-size: 18px !important; }
+}
+.room {
+  background: #111;
+  padding: clamp(1px, 0.2vw, 8px) clamp(1px, 0.2vw, 6px);
+  text-align: center;
+  color: #888;
+  border: 2px solid #333;
+  font-size: clamp(5px, 1vw, 14px);
+  font-weight: bold;
+  transition: 0.3s;
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: clamp(14px, 2.5vw, 50px);
+  border-radius: 3px;
+}
+.room .room-name { font-size: clamp(4px, 0.8vw, 11px); opacity: 0.8; line-height: 1.1; }
+.room .room-animatronic { font-size: clamp(6px, 1.2vw, 16px); font-weight: bold; margin-top: 1px; }
+.room.active { border-color: #0f0; color: #0f0; box-shadow: 0 0 20px rgba(0,255,0,0.3); background: rgba(0,255,0,0.05); }
+.room.danger { border-color: #ff0000; color: #ff0000; box-shadow: 0 0 30px rgba(255,0,0,0.5); background: rgba(255,0,0,0.08); }
+.room.camera-view { border-color: #00ccff; color: #00ccff; box-shadow: 0 0 20px rgba(0,204,255,0.3); background: rgba(0,204,255,0.05); }
+.room.corridor { border-color: #666688; background: rgba(40,40,60,0.2); border-style: solid; }
+.room.pirate { border-color: #ff8800; background: rgba(255,136,0,0.1); border-style: double; }
+.room.pirate .room-name { color: #ff8800; }
+.room.secret { border-color: #ff8800; background: rgba(255,136,0,0.08); animation: secretPulse 3s infinite; }
+.room.door-closed { border-color: #00aaff; background: rgba(0,170,255,0.15); box-shadow: 0 0 30px rgba(0,170,255,0.2); }
+.room.door-closed .room-name { color: #00ccff; }
+.room.door-closed .room-animatronic { color: #00ccff; }
+
+@keyframes secretPulse { 0% { box-shadow: 0 0 6px rgba(255,136,0,0.1); } 50% { box-shadow: 0 0 25px rgba(255,136,0,0.4); border-color: #ffaa33; } 100% { box-shadow: 0 0 6px rgba(255,136,0,0.1); } }
+.room.secret .room-name { color: #ffaa33; }
+
+/* ===== РАСПОЛОЖЕНИЕ ===== */
+#room-stage { grid-column: 2; grid-row: 1; }
+#room-corridor { grid-column: 1; grid-row: 1; }
+#room-corridor .room-name { font-size: clamp(4px, 0.8vw, 11px); color: #99aacc; }
+#room-corridor .room-animatronic { font-size: clamp(5px, 1vw, 15px); }
+#room-pirate { grid-column: 1; grid-row: 2; }
+#room-secret { grid-column: 2; grid-row: 2; }
+#room-hall { grid-column: 1; grid-row: 3; }
+#office-center { grid-column: 2; grid-row: 3; }
+#room-kitchen { grid-column: 3; grid-row: 3; }
+#room-storage { grid-column: 1; grid-row: 4; }
+#room-toilets { grid-column: 2; grid-row: 4; }
+#room-backyard { grid-column: 3; grid-row: 4; }
+#room-archive { grid-column: 4; grid-row: 1; }
+#room-workshop { grid-column: 4; grid-row: 2; }
+#room-lounge { grid-column: 4; grid-row: 3; }
+#room-library { grid-column: 4; grid-row: 4; }
+#room-server { grid-column: 3; grid-row: 2; }
+#room-closet { grid-column: 3; grid-row: 1; }
+
+#office-center {
+  background: rgba(0,50,0,0.4);
+  border: 3px solid #0f0;
+  color: #0f0;
+  font-size: clamp(9px, 1.8vw, 20px);
+  text-shadow: 0 0 30px #0f0;
+  box-shadow: 0 0 50px rgba(0,255,0,0.15);
+  min-height: clamp(18px, 3vw, 50px);
+}
+#office-center .room-name { font-size: clamp(7px, 1.2vw, 16px); opacity: 1; }
+
+/* ===== ЧАСЫ (только на ПК) ===== */
+#clockContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 4px 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  position: relative;
+}
+#clockCanvas {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: #111;
+  border: 3px solid #444;
+  box-shadow: 0 0 20px rgba(255,255,255,0.05);
+  touch-action: manipulation;
+}
+@media (max-width: 768px) {
+  #clockContainer { display: none; }
+}
+
+/* ===== КНОПКИ ДВЕРЕЙ ===== */
+#doorControls {
+  display: flex;
+  gap: clamp(4px, 0.8vw, 50px);
+  margin: 2px 0;
+  flex-shrink: 0;
+  width: 100%;
+  justify-content: center;
+}
+.doorBtn {
+  padding: clamp(4px, 0.8vw, 22px) clamp(6px, 1vw, 36px);
+  background: #222;
+  color: #aaa;
+  border: 3px solid #444;
+  cursor: pointer;
+  font-size: clamp(10px, 1.8vw, 28px);
+  font-weight: bold;
+  transition: 0.2s;
+  border-radius: clamp(4px, 0.6vw, 16px);
+  min-width: clamp(36px, 7vw, 160px);
+  letter-spacing: 0.5px;
+  touch-action: manipulation;
+  flex: 1;
+  max-width: 220px;
+}
+.doorBtn.closed { background: #330000; border-color: #00aaff; color: #00ccff; }
+.doorBtn:active { background: #333; transform: scale(0.95); }
+.doorBtn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* ===== КНОПКА КАМЕР ===== */
+#cameraBtn {
+  padding: clamp(4px, 0.8vw, 22px) clamp(6px, 1vw, 36px);
+  background: #1a2a1a;
+  color: #0f0;
+  border: 3px solid #0f0;
+  cursor: pointer;
+  font-size: clamp(10px, 1.8vw, 28px);
+  margin: 2px 0;
+  transition: 0.2s;
+  border-radius: clamp(4px, 0.6vw, 16px);
+  flex-shrink: 0;
+  min-width: clamp(40px, 8vw, 200px);
+  letter-spacing: 0.5px;
+  touch-action: manipulation;
+  width: 80%;
+  max-width: 340px;
+}
+#cameraBtn:active { background: #0f0; color: #000; transform: scale(0.95); }
+#cameraBtn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* ===== ОСТАЛЬНОЕ ===== */
+#glitchOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center; flex-direction: column; }
+#glitchOverlay .errorText { color: #ff0000; font-size: clamp(12px, 2vw, 22px); text-shadow: 0 0 40px #ff0000; background: rgba(0,0,0,0.9); padding: clamp(6px, 1vw, 18px); border: 4px solid #ff0000; animation: flicker 0.1s infinite; }
+#screamer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 200; background: #000; justify-content: center; align-items: center; }
+#screamer div { background: #000; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+#screamer .face { font-size: clamp(40px, 8vw, 120px); color: #ff0000; text-shadow: 0 0 120px #ff0000; }
+#screamer .text { color: #ff0000; font-size: clamp(16px, 3vw, 36px); margin-top: 16px; text-shadow: 0 0 60px #ff0000; }
+@keyframes flicker { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+#tutorial { position: absolute; bottom: 2px; color: #555; font-size: clamp(5px, 0.8vw, 10px); background: rgba(0,0,0,0.8); padding: 2px 8px; border: 1px solid #333; border-radius: 3px; }
+.cam-indicator { position: absolute; top: 28px; right: 8px; color: #00ccff; font-size: clamp(7px, 1.2vw, 13px); display: none; background: rgba(0,0,0,0.7); padding: 2px 6px; border: 1px solid #00ccff; z-index: 15; border-radius: 4px; }
+
+#officeAlert { position: absolute; top: 26px; right: 6px; z-index: 300 !important; display: none; background: rgba(0,0,0,0.95); border: 3px solid #ff0000; border-radius: 5px; padding: 3px 8px; min-width: 80px; text-align: right; box-shadow: 0 0 50px rgba(255,0,0,0.5); pointer-events: none; transition: 0.2s; }
+#officeAlert.safe { border-color: #00ff00; box-shadow: 0 0 50px rgba(0,255,0,0.3); }
+#officeAlert .alert-name { color: #ff0000; font-size: clamp(10px, 1.8vw, 18px); font-weight: bold; text-shadow: 0 0 30px #ff0000; letter-spacing: 1px; }
+#officeAlert .alert-name.safe-text { color: #00ff00; text-shadow: 0 0 30px #00ff00; }
+#officeAlert .alert-door { color: #ffaa00; font-size: clamp(8px, 1.5vw, 14px); font-weight: bold; text-shadow: 0 0 20px #ffaa00; margin-top: 2px; }
+#officeAlert .alert-sub { color: #ff6666; font-size: clamp(7px, 1.2vw, 12px); margin-top: 2px; opacity: 1; }
+#officeAlert .alert-sub.safe-sub { color: #66ff66; }
+
+#powerAlert { position: absolute; bottom: clamp(26px, 4vw, 55px); left: 50%; transform: translateX(-50%); color: #ff0000; font-size: clamp(9px, 1.5vw, 16px); display: none; z-index: 20; background: rgba(0,0,0,0.9); padding: 3px 10px; border: 2px solid #ff0000; border-radius: 4px; text-shadow: 0 0 30px #ff0000; animation: pulse 0.5s infinite; }
+
+/* ===== СУПЕР-МАЛЕНЬКИЕ КНОПКИ ДЛЯ ТЕЛЕФОНА ===== */
+@media (max-width: 500px) {
+  #gameContainer { border: none; max-height: 100vh; max-width: 100vw; }
+  #map { gap: 1.5px; padding: 1.5px; max-height: 120px; }
+  .room { font-size: 4px; padding: 1px 1px; min-height: 12px; border-width: 1px; }
+  .room .room-name { font-size: 3.5px; }
+  .room .room-animatronic { font-size: 5px; }
+  .doorBtn { font-size: 8px; padding: 3px 3px; min-width: 30px; border-width: 1.5px; border-radius: 3px; }
+  #cameraBtn { font-size: 8px; padding: 3px 3px; min-width: 36px; border-width: 1.5px; border-radius: 3px; }
+  #power { font-size: 8px; }
+  #status { font-size: 7px; }
+  #foxyTimer { font-size: 7px; min-width: 40px; padding-left: 4px; }
+  #hud { font-size: 7px; padding: 1px 4px; margin-top: 20px; border-bottom-width: 1px; }
+  #office-center { font-size: 7px; min-height: 12px; border-width: 2px; }
+  #office-center .room-name { font-size: 6px; }
+  #doorControls { gap: 3px; margin: 1px 0; }
+  #digitalTimer { font-size: 10px; }
+  #cheatToggleBtn { width: 20px; height: 20px; font-size: 10px; top: 28px; left: 3px; border-width: 1.5px; }
+  #cheatMenu { top: 52px; left: 3px; min-width: 70px; padding: 3px 4px; border-width: 1.5px; }
+  #cheatMenu .cheat-title { font-size: 7px; }
+  #cheatMenu .cheat-btn { font-size: 6px; padding: 1px 3px; }
+  #pauseBtn { font-size: 8px; padding: 2px 6px; top: 2px; border-width: 1.5px; border-radius: 4px; }
+  #tutorial { font-size: 5px; bottom: 1px; padding: 1px 4px; }
+  #powerAlert { font-size: 8px; bottom: 30px; padding: 2px 6px; border-width: 1px; }
+  #officeAlert { top: 16px; right: 4px; padding: 2px 5px; min-width: 50px; border-width: 2px; }
+  #officeAlert .alert-name { font-size: 8px; }
+  #officeAlert .alert-door { font-size: 6px; }
+  #officeAlert .alert-sub { font-size: 6px; }
+  #screamer .face { font-size: 30px; }
+  #screamer .text { font-size: 14px; }
+  #glitchOverlay .errorText { font-size: 10px; padding: 4px; }
+  #nickMenu input { font-size: 10px; padding: 4px; }
+  .cam-indicator { font-size: 6px; top: 16px; right: 4px; padding: 1px 4px; }
+  #clockCanvas { width: 30px; height: 30px; }
+  /* Экран победы на телефоне */
+  #winScreen .win-nick { font-size: clamp(24px, 6vw, 40px); padding: 4px 16px; }
+}
+@media (max-width: 400px) {
+  #map { gap: 1px; padding: 1px; max-height: 100px; }
+  .room { font-size: 3px; min-height: 10px; padding: 0.5px 0.5px; border-width: 1px; }
+  .room .room-name { font-size: 3px; }
+  .room .room-animatronic { font-size: 4px; }
+  .doorBtn { font-size: 6px; padding: 2px 2px; min-width: 24px; border-width: 1px; border-radius: 2px; }
+  #cameraBtn { font-size: 6px; padding: 2px 2px; min-width: 28px; border-width: 1px; border-radius: 2px; }
+  #hud { margin-top: 16px; padding: 1px 3px; font-size: 6px; }
+  #power { font-size: 6px; }
+  #status { font-size: 6px; }
+  #foxyTimer { font-size: 6px; min-width: 30px; padding-left: 2px; }
+  #digitalTimer { font-size: 8px; }
+  #office-center { font-size: 6px; min-height: 10px; border-width: 1.5px; }
+  #office-center .room-name { font-size: 5px; }
+  #doorControls { gap: 2px; }
+  #cheatToggleBtn { width: 16px; height: 16px; font-size: 8px; top: 20px; left: 2px; }
+  #cheatMenu { top: 40px; left: 2px; min-width: 60px; padding: 2px 3px; }
+  #cheatMenu .cheat-title { font-size: 6px; }
+  #cheatMenu .cheat-btn { font-size: 5px; padding: 1px 2px; }
+  #pauseBtn { font-size: 6px; padding: 1px 4px; top: 1px; }
+  #tutorial { font-size: 4px; }
+  #powerAlert { font-size: 6px; bottom: 24px; padding: 1px 4px; }
+  #officeAlert { top: 12px; right: 2px; padding: 1px 4px; min-width: 40px; }
+  #officeAlert .alert-name { font-size: 7px; }
+  #officeAlert .alert-door { font-size: 5px; }
+  #officeAlert .alert-sub { font-size: 5px; }
+  #screamer .face { font-size: 24px; }
+  #screamer .text { font-size: 12px; }
+  #glitchOverlay .errorText { font-size: 8px; padding: 3px; }
+  #nickMenu input { font-size: 8px; padding: 3px; }
+  .cam-indicator { font-size: 5px; top: 12px; right: 2px; padding: 1px 3px; }
+  #winScreen .win-nick { font-size: clamp(18px, 5vw, 28px); padding: 2px 10px; }
+}
+</style>
+</head>
+<body>
+<div id="rotate-overlay"><div class="icon">📱</div><div>Поверните телефон<br>в горизонтальный режим</div></div>
+
+<div id="gameContainer">
+  <!-- ПАУЗА -->
+  <div id="pauseOverlay">
+    <div class="pause-title">⏸ ПАУЗА</div>
+    <div class="pause-sub">Игра на паузе</div>
+    <button class="btn-resume" id="btnResume">▶ ПРОДОЛЖИТЬ</button>
+  </div>
+
+  <!-- КНОПКА ПАУЗЫ -->
+  <button id="pauseBtn">⏸ ПАУЗА</button>
+
+  <!-- КНОПКА ОТКРЫТИЯ ЧИТ-МЕНЮ (ТЕЛЕФОН) -->
+  <button id="cheatToggleBtn">⚙️</button>
+
+  <!-- ЧИТ-МЕНЮ -->
+  <div id="cheatMenu">
+    <div class="cheat-title">⚙️ ЧИТ-МЕНЮ</div>
+    <button class="cheat-btn" data-cheat="infinitePower">⚡ Энергия</button>
+    <button class="cheat-btn" data-cheat="godMode">🛡️ Бог</button>
+    <button class="cheat-btn" data-cheat="speedUp">⏩ Скорость</button>
+    <button class="cheat-btn" data-cheat="teleportCorridor">🌀 Телепорт</button>
+  </div>
+
+  <div id="nickMenu">
+    <div class="title">ВВЕДИТЕ НИК</div>
+    <div class="sub">Чтобы продолжить</div>
+    <input type="text" id="nickInput" placeholder="Ваш ник..." maxlength="20" autofocus>
+    <button class="btn-start" id="btnNickStart">▶ ПРИНЯТЬ</button>
+    <div class="welcome-msg" id="welcomeMsg"></div>
+  </div>
+
+  <div id="menu" style="display:none;">
+    <div class="title">FNAF 1<span class="sub">ПЯТЬ НОЧЕЙ</span></div>
+    <button class="btn-play" id="btnPlay">▶ ИГРАТЬ</button>
+    <div class="version">v 2.0</div>
+  </div>
+
+  <!-- ЭКРАН ПОБЕДЫ С ИМЕНЕМ Alexfitcool -->
+  <div id="winScreen">
+    <div class="win-emoji">🎉</div>
+    <div class="win-title">ВЫ ВЫЖИЛИ!</div>
+    <div class="win-sub">Спасибо за Бета-тест!</div>
+    <div class="win-nick">Alexfitcool</div>
+    <button class="btn-restart" id="btnRestart">🔄 ИГРАТЬ СНОВА</button>
+  </div>
+
+  <div id="office" style="display:none;">
+    <div id="hud">
+      <span>⚡ <span id="power">100</span>%</span>
+      <span id="digitalTimer">6:00</span>
+      <span id="foxyTimer">0с 🦊</span>
+      <span>📍 <span id="status">Безопасно</span></span>
+    </div>
+    <div class="cam-indicator" id="camIndicator">📹 КАМЕРЫ ВКЛ</div>
+
+    <div id="map">
+      <div class="room corridor" id="room-corridor" data-room="corridor"><span class="room-name">🚶 КОР</span><span class="room-animatronic" id="anim-corridor"></span></div>
+      <div class="room" id="room-stage" data-room="stage"><span class="room-name">🎸 СЦЕНА</span><span class="room-animatronic" id="anim-stage"></span></div>
+      <div class="room" id="room-closet" data-room="closet"><span class="room-name">👔 ГАРД</span><span class="room-animatronic" id="anim-closet"></span></div>
+      <div class="room" id="room-archive" data-room="archive"><span class="room-name">📁 АРХ</span><span class="room-animatronic" id="anim-archive"></span></div>
+      
+      <div class="room pirate" id="room-pirate" data-room="pirate"><span class="room-name">🏴‍☠️ БУХТА</span><span class="room-animatronic" id="anim-pirate"></span></div>
+      <div class="room secret" id="room-secret" data-room="secret"><span class="room-name">🔮 ТАЙН</span><span class="room-animatronic" id="anim-secret"></span></div>
+      <div class="room" id="room-server" data-room="server"><span class="room-name">🖥️ СЕРВ</span><span class="room-animatronic" id="anim-server"></span></div>
+      <div class="room" id="room-workshop" data-room="workshop"><span class="room-name">🔧 МАСТ</span><span class="room-animatronic" id="anim-workshop"></span></div>
+      
+      <div class="room" id="room-hall" data-room="hall"><span class="room-name">🚪 ЗАЛ</span><span class="room-animatronic" id="anim-hall"></span></div>
+      <div class="room" id="office-center"><span class="room-name">🏢 ОФИС</span><span class="room-animatronic" style="font-size:clamp(5px,1vw,13px);color:#88ff88;">ВЫ</span></div>
+      <div class="room" id="room-kitchen" data-room="kitchen"><span class="room-name">🍕 КУХНЯ</span><span class="room-animatronic" id="anim-kitchen"></span></div>
+      <div class="room" id="room-lounge" data-room="lounge"><span class="room-name">🛋️ ОТД</span><span class="room-animatronic" id="anim-lounge"></span></div>
+      
+      <div class="room" id="room-storage" data-room="storage"><span class="room-name">📦 СКЛ</span><span class="room-animatronic" id="anim-storage"></span></div>
+      <div class="room" id="room-toilets" data-room="toilets"><span class="room-name">🚽 ТУА</span><span class="room-animatronic" id="anim-toilets"></span></div>
+      <div class="room" id="room-backyard" data-room="backyard"><span class="room-name">🌳 ДВОР</span><span class="room-animatronic" id="anim-backyard"></span></div>
+      <div class="room" id="room-library" data-room="library"><span class="room-name">📚 БИБ</span><span class="room-animatronic" id="anim-library"></span></div>
+    </div>
+
+    <!-- ЧАСЫ (только на ПК) -->
+    <div id="clockContainer">
+      <canvas id="clockCanvas" width="200" height="200"></canvas>
+    </div>
+
+    <div id="doorControls">
+      <button class="doorBtn" id="leftDoor">🚪 ЛЕВ</button>
+      <button class="doorBtn" id="rightDoor">🚪 ПРАВ</button>
+    </div>
+    <button id="cameraBtn">📹 КАМЕРЫ</button>
+    <div id="tutorial">[🦊 Таймер]</div>
+  </div>
+
+  <div id="powerAlert">⚡ НИЗКИЙ УРОВЕНЬ ЭНЕРГИИ!</div>
+  <div id="officeAlert">
+    <div class="alert-name" id="alertName">⚠️ ФРЕДДИ</div>
+    <div class="alert-door" id="alertDoor">🚪 ЛЕВАЯ</div>
+    <div class="alert-sub" id="alertSub">ЗАКРОЙ!</div>
+  </div>
+  <div id="glitchOverlay"><div class="errorText">⚠️ ERROR<br>Frame 0x3F2A</div></div>
+  <div id="screamer"><div><div class="face">🎭</div><div class="text">ПОПАЛСЯ!</div></div></div>
+</div>
+
+<script>
+// ===== ЛОГИКА (без изменений) =====
+const roomElements = {
+  stage: document.getElementById('room-stage'), corridor: document.getElementById('room-corridor'),
+  hall: document.getElementById('room-hall'), kitchen: document.getElementById('room-kitchen'),
+  storage: document.getElementById('room-storage'), toilets: document.getElementById('room-toilets'),
+  backyard: document.getElementById('room-backyard'), archive: document.getElementById('room-archive'),
+  workshop: document.getElementById('room-workshop'), lounge: document.getElementById('room-lounge'),
+  library: document.getElementById('room-library'), server: document.getElementById('room-server'),
+  closet: document.getElementById('room-closet'), pirate: document.getElementById('room-pirate'),
+  secret: document.getElementById('room-secret')
+};
+const animSpans = {
+  stage: document.getElementById('anim-stage'), corridor: document.getElementById('anim-corridor'),
+  hall: document.getElementById('anim-hall'), kitchen: document.getElementById('anim-kitchen'),
+  storage: document.getElementById('anim-storage'), toilets: document.getElementById('anim-toilets'),
+  backyard: document.getElementById('anim-backyard'), archive: document.getElementById('anim-archive'),
+  workshop: document.getElementById('anim-workshop'), lounge: document.getElementById('anim-lounge'),
+  library: document.getElementById('anim-library'), server: document.getElementById('anim-server'),
+  closet: document.getElementById('anim-closet'), pirate: document.getElementById('anim-pirate'),
+  secret: document.getElementById('anim-secret')
+};
+const powerEl = document.getElementById('power'), statusEl = document.getElementById('status');
+const foxyTimerEl = document.getElementById('foxyTimer');
+const digitalTimerEl = document.getElementById('digitalTimer');
+const glitchOverlay = document.getElementById('glitchOverlay'), screamerEl = document.getElementById('screamer');
+const leftDoorBtn = document.getElementById('leftDoor'), rightDoorBtn = document.getElementById('rightDoor');
+const camIndicator = document.getElementById('camIndicator'), officeAlert = document.getElementById('officeAlert');
+const alertName = document.getElementById('alertName'), alertDoor = document.getElementById('alertDoor'), alertSub = document.getElementById('alertSub');
+const officeEl = document.getElementById('office'), powerAlert = document.getElementById('powerAlert');
+const menuEl = document.getElementById('menu'), winScreen = document.getElementById('winScreen');
+const btnPlay = document.getElementById('btnPlay'), btnRestart = document.getElementById('btnRestart');
+const nickMenuEl = document.getElementById('nickMenu');
+const nickInput = document.getElementById('nickInput');
+const btnNickStart = document.getElementById('btnNickStart');
+const welcomeMsg = document.getElementById('welcomeMsg');
+const pauseOverlay = document.getElementById('pauseOverlay');
+const pauseBtn = document.getElementById('pauseBtn');
+const btnResume = document.getElementById('btnResume');
+const clockCanvas = document.getElementById('clockCanvas');
+const ctx = clockCanvas.getContext('2d');
+const cheatMenu = document.getElementById('cheatMenu');
+const cheatToggleBtn = document.getElementById('cheatToggleBtn');
+
+let playerNick = 'Гость';
+let isSpecialNick = false;
+let isCheatUser = false;
+
+const cheats = {
+  infinitePower: false,
+  godMode: false,
+  speedUp: false,
+  teleportCorridor: false
+};
+
+const specialNicks = {
+  'alexfitcool': { msg: '👑 Привет, Админ! Чит-меню активировано.', chaos: true, cheat: true },
+  'deepseek': { msg: 'Приветствую, создатель! Режим хаоса активирован.', chaos: true, cheat: false },
+  'аномальная зона': { msg: '🔮 Аномалия обнаружена! Офис скрыт. Аниматроники агрессивны.', chaos: true, anomaly: true, cheat: false }
+};
+
+let timeLeft = 360, power = 100, leftDoorClosed = false, rightDoorClosed = false;
+let isGameOver = false, isWin = false, cameraActive = false, gameStarted = false, firstCheckDone = false;
+let alertTimeout = null, attackCooldown = 0, cameraCooldown = 0, alertActive = false, attackEnabled = false;
+let lastThreatState = false, glitchTimeout = null, gameLoopInterval = null;
+let chaosMode = false, anomalyMode = false, isPaused = false;
+
+let leftDoorTimer = 0, rightDoorTimer = 0;
+let leftDoorRetreatTimer = 0, rightDoorRetreatTimer = 0;
+
+let foxyCooldown = 0, foxyState = 'pirate', foxyNextAttackTime = 0;
+function randomFoxyDelay() { return Math.floor(Math.random() * 300) + 50; }
+function resetFoxy() {
+  foxyState = 'pirate'; foxyCooldown = 0; foxyNextAttackTime = randomFoxyDelay();
+  animatronicPositions.foxy = 'pirate'; updateFoxyDisplay();
+}
+function updateFoxyDisplay() {
+  if (foxyState === 'pirate') {
+    let remaining = Math.max(0, foxyNextAttackTime - foxyCooldown);
+    foxyTimerEl.textContent = remaining + 'с 🦊';
+    foxyTimerEl.className = '';
+  } else if (foxyState === 'corridor') {
+    foxyTimerEl.textContent = 'БЕЖИТ 🦊';
+    foxyTimerEl.className = 'running';
+  } else if (foxyState === 'hall') {
+    foxyTimerEl.textContent = 'У ДВЕРИ 🦊';
+    foxyTimerEl.className = 'danger';
+  }
+}
+
+const farRooms = ['storage', 'toilets', 'backyard', 'archive', 'workshop', 'lounge', 'library', 'server', 'closet'];
+const safeRooms = ['storage', 'toilets', 'backyard', 'archive', 'workshop', 'lounge', 'library', 'server', 'closet', 'secret', 'corridor'];
+function getRandomSpawn() { return safeRooms[Math.floor(Math.random() * safeRooms.length)]; }
+
+const nameMap = { freddy: 'Фр', bonnie: 'Б', chica: 'Ч', foxy: 'Фо' };
+let animatronicPositions = { freddy: 'stage', bonnie: 'stage', chica: 'stage', foxy: 'pirate' };
+
+const connections = {
+  stage: ['corridor', 'closet'], corridor: ['stage', 'hall', 'kitchen', 'toilets', 'server', 'pirate'],
+  hall: ['corridor', 'storage', 'toilets', 'library'], kitchen: ['corridor', 'storage', 'backyard', 'lounge', 'server'],
+  storage: ['hall', 'kitchen', 'toilets', 'backyard', 'workshop'], toilets: ['corridor', 'hall', 'storage', 'backyard', 'library'],
+  backyard: ['kitchen', 'storage', 'toilets', 'library', 'workshop'], archive: ['workshop', 'lounge', 'closet'],
+  workshop: ['archive', 'storage', 'backyard', 'server', 'secret'], lounge: ['archive', 'kitchen', 'library', 'server'],
+  library: ['lounge', 'hall', 'toilets', 'backyard'], server: ['corridor', 'kitchen', 'workshop', 'lounge', 'secret'],
+  closet: ['stage', 'archive', 'secret'], pirate: ['corridor'], secret: ['closet', 'server', 'workshop']
+};
+
+function toggleCheat(cheatName) {
+  cheats[cheatName] = !cheats[cheatName];
+  const btn = document.querySelector(`.cheat-btn[data-cheat="${cheatName}"]`);
+  if (btn) btn.classList.toggle('active');
+  if (cheatName === 'teleportCorridor' && cheats.teleportCorridor) {
+    for (let name in animatronicPositions) {
+      if (name === 'foxy') {
+        animatronicPositions.foxy = 'corridor';
+        foxyState = 'corridor';
+        foxyCooldown = 0;
+        updateFoxyDisplay();
+      } else {
+        animatronicPositions[name] = 'corridor';
+      }
+    }
+    updateMap();
+    cheats.teleportCorridor = false;
+    if (btn) btn.classList.remove('active');
+    triggerGlitch(500);
+  }
+  if (cheatName === 'infinitePower') {
+    if (cheats.infinitePower) {
+      power = 100;
+      powerEl.textContent = '100';
+      powerEl.className = '';
+      powerAlert.style.display = 'none';
+    }
+  }
+}
+
+function applyCheats() {
+  if (cheats.infinitePower) {
+    power = 100;
+    powerEl.textContent = '100';
+    powerEl.className = '';
+    powerAlert.style.display = 'none';
+  }
+}
+
+function moveAnimatronics() {
+  if (!attackEnabled || isPaused) return;
+  let moveChance = anomalyMode ? 0.9 : 0.75;
+  let doorBias = anomalyMode ? 0.5 : 0.4;
+  if (cheats.speedUp) {
+    moveChance = Math.min(1, moveChance * 1.5);
+    doorBias = Math.min(0.8, doorBias * 1.3);
+  }
+  for (let name in animatronicPositions) {
+    if (name === 'foxy') continue;
+    let current = animatronicPositions[name];
+    let possible = connections[current] || [];
+    if (possible.length > 0 && Math.random() < moveChance) {
+      let hallKitchen = possible.filter(r => r === 'hall' || r === 'kitchen');
+      let choice;
+      if (hallKitchen.length > 0 && Math.random() < doorBias) {
+        choice = hallKitchen[Math.floor(Math.random() * hallKitchen.length)];
+      } else {
+        choice = possible[Math.floor(Math.random() * possible.length)];
+      }
+      animatronicPositions[name] = choice;
+    }
+  }
+  // Фокси
+  if (foxyState === 'pirate') {
+    foxyCooldown++;
+    updateFoxyDisplay();
+    let delay = anomalyMode ? Math.floor(Math.random() * 200) + 30 : foxyNextAttackTime;
+    if (cheats.speedUp) delay = Math.floor(delay / 2);
+    if ((anomalyMode && foxyCooldown >= delay) || (!anomalyMode && foxyCooldown >= foxyNextAttackTime)) {
+      foxyState = 'corridor'; foxyCooldown = 0;
+      animatronicPositions.foxy = 'corridor';
+      triggerGlitch(300);
+      updateFoxyDisplay();
+    }
+  } else if (foxyState === 'corridor') {
+    foxyState = 'hall';
+    animatronicPositions.foxy = 'hall';
+    triggerGlitch(300);
+    updateFoxyDisplay();
+    if (!leftDoorClosed) {
+      setTimeout(() => {
+        if (foxyState === 'hall' && !leftDoorClosed && !isPaused && !isGameOver) {
+          triggerScreamer('foxy');
+        }
+      }, 1000);
+    }
+  } else if (foxyState === 'hall') {
+    updateFoxyDisplay();
+    if (!leftDoorClosed) {
+      if (Math.random() < (anomalyMode ? 0.25 : 0.15)) triggerScreamer('foxy');
+    }
+  }
+  updateMap();
+}
+
+function resetFoxyAfterAttack() {
+  foxyState = 'pirate'; animatronicPositions.foxy = 'pirate';
+  foxyNextAttackTime = randomFoxyDelay(); foxyCooldown = 0;
+  updateFoxyDisplay();
+}
+
+function updateMap() {
+  for (let key in roomElements) { roomElements[key].className = 'room'; animSpans[key].textContent = ''; }
+  roomElements.corridor.classList.add('corridor');
+  if (roomElements.pirate) roomElements.pirate.classList.add('pirate');
+  if (roomElements.secret) roomElements.secret.classList.add('secret');
+
+  if (anomalyMode) {
+    let officeSpan = document.querySelector('#office-center .room-name');
+    if (officeSpan) officeSpan.textContent = '❓ ОФИС';
+    let officeSub = document.querySelector('#office-center .room-animatronic');
+    if (officeSub) officeSub.textContent = 'СКРЫТ';
+  } else {
+    let officeSpan = document.querySelector('#office-center .room-name');
+    if (officeSpan) officeSpan.textContent = '🏢 ОФИС';
+    let officeSub = document.querySelector('#office-center .room-animatronic');
+    if (officeSub) officeSub.textContent = 'ВЫ';
+  }
+
+  if (leftDoorClosed) {
+    roomElements.hall.classList.add('door-closed');
+    animSpans.hall.textContent = '🚫 ЗАКРЫТО';
+  }
+  if (rightDoorClosed) {
+    roomElements.kitchen.classList.add('door-closed');
+    animSpans.kitchen.textContent = '🚫 ЗАКРЫТО';
+  }
+
+  if (cameraActive) {
+    let roomOccupants = {};
+    for (let key in roomElements) roomOccupants[key] = [];
+    for (let [name, pos] of Object.entries(animatronicPositions)) {
+      if (roomOccupants[pos]) roomOccupants[pos].push(name);
+    }
+    for (let [room, occupants] of Object.entries(roomOccupants)) {
+      let roomEl = roomElements[room], animSpan = animSpans[room];
+      if (roomEl && animSpan && occupants.length > 0) {
+        if ((room === 'hall' && leftDoorClosed) || (room === 'kitchen' && rightDoorClosed)) {
+          animSpan.textContent = '🚫 ЗАКРЫТО';
+        } else {
+          roomEl.classList.add('danger');
+          let sorted = occupants.sort();
+          let names = sorted.map(n => nameMap[n]).join(' ');
+          animSpan.textContent = '👾 ' + names;
+        }
+      }
+    }
+    statusEl.textContent = '📹 Камеры'; statusEl.style.color = '#00ccff';
+  } else {
+    for (let key in roomElements) roomElements[key].classList.remove('danger');
+    statusEl.textContent = 'Спокойно'; statusEl.style.color = '#0f0';
+  }
+
+  if (cameraActive && animatronicPositions.freddy === 'stage') roomElements.stage.classList.add('active');
+  else roomElements.stage.classList.remove('active');
+
+  if (cameraActive) {
+    for (let key in roomElements) {
+      if (key !== 'corridor' && key !== 'pirate' && key !== 'secret') roomElements[key].classList.add('camera-view');
+    }
+  } else {
+    for (let key in roomElements) roomElements[key].classList.remove('camera-view');
+  }
+  checkOfficeDanger();
+  drawClock();
+}
+
+function checkOfficeDanger() {
+  let attackers = [], doorSide = '';
+  let dz = ['hall', 'kitchen'];
+  if (dz.includes(animatronicPositions.bonnie)) attackers.push('Б');
+  if (dz.includes(animatronicPositions.freddy)) attackers.push('Фр');
+  if (dz.includes(animatronicPositions.chica)) attackers.push('Ч');
+  if (dz.includes(animatronicPositions.foxy)) attackers.push('Фо');
+  let hasLeft = (animatronicPositions.bonnie === 'hall' || animatronicPositions.freddy === 'hall' || animatronicPositions.foxy === 'hall');
+  let hasRight = (animatronicPositions.chica === 'kitchen');
+  if (hasLeft && hasRight) doorSide = 'ЛЕВАЯ + ПРАВАЯ';
+  else if (hasLeft) doorSide = 'ЛЕВАЯ';
+  else if (hasRight) doorSide = 'ПРАВАЯ';
+  let leftBlocked = leftDoorClosed && hasLeft;
+  let rightBlocked = rightDoorClosed && hasRight;
+  let hasThreat = (attackers.length > 0 && !leftBlocked && !rightBlocked && attackEnabled);
+  if (hasThreat !== lastThreatState) {
+    if (!hasThreat && lastThreatState) {
+      officeEl.classList.add('safe-flash');
+      setTimeout(() => officeEl.classList.remove('safe-flash'), 500);
+      alertName.textContent = '✅ УШЛИ'; alertName.className = 'alert-name safe-text';
+      alertDoor.textContent = '🚪 БЕЗОПАСНО'; alertSub.textContent = 'МОЖНО ВЫДОХНУТЬ'; alertSub.className = 'alert-sub safe-sub';
+      officeAlert.className = 'officeAlert safe'; officeAlert.style.display = 'block';
+      clearTimeout(alertTimeout);
+      alertTimeout = setTimeout(() => { officeAlert.style.display = 'none'; officeAlert.className = 'officeAlert'; }, 2500);
+    }
+    lastThreatState = hasThreat;
+  }
+  if (hasThreat) {
+    alertName.textContent = '⚠️ ' + attackers.join(' + '); alertName.className = 'alert-name';
+    alertDoor.textContent = '🚪 ' + doorSide + ' ДВЕРЬ'; alertSub.textContent = 'ЗАКРОЙ ДВЕРЬ!'; alertSub.className = 'alert-sub';
+    officeAlert.className = 'officeAlert'; officeAlert.style.display = 'block'; officeEl.classList.add('danger-flash'); alertActive = true;
+    clearTimeout(alertTimeout);
+    alertTimeout = setTimeout(() => {
+      let stillThreat = false;
+      if (animatronicPositions.bonnie === 'hall' || animatronicPositions.freddy === 'hall' || 
+          animatronicPositions.chica === 'kitchen' || animatronicPositions.foxy === 'hall') stillThreat = true;
+      let stillBlocked = (leftDoorClosed && hasLeft) || (rightDoorClosed && hasRight);
+      if (!stillThreat || stillBlocked) { officeAlert.style.display = 'none'; officeEl.classList.remove('danger-flash'); alertActive = false; lastThreatState = false; }
+    }, 3000);
+  } else {
+    if (!officeAlert.classList.contains('safe')) { officeAlert.style.display = 'none'; officeEl.classList.remove('danger-flash'); alertActive = false; }
+  }
+}
+
+function triggerGlitch(d) { if (glitchTimeout) clearTimeout(glitchTimeout); glitchOverlay.style.display = 'flex'; glitchTimeout = setTimeout(() => { glitchOverlay.style.display = 'none'; glitchTimeout = null; }, d || 1200); }
+
+function triggerScreamer(reason) {
+  if (isGameOver || isWin || !gameStarted || cameraActive || cameraCooldown > 0 || (!attackEnabled && reason !== 'power')) return;
+  if (isPaused) return;
+  if (cheats.godMode && reason !== 'power') {
+    glitchOverlay.style.display = 'flex';
+    setTimeout(() => { glitchOverlay.style.display = 'none'; }, 300);
+    return;
+  }
+  screamerEl.style.display = 'flex'; isGameOver = true; officeAlert.style.display = 'none';
+  if (reason === 'foxy') resetFoxyAfterAttack();
+  setTimeout(() => { screamerEl.style.display = 'none'; alert((reason === 'power' ? 'Энергия кончилась!' : 'Вас поймали!') + ' Нажмите OK для рестарта.'); resetGame(); }, 2000);
+}
+
+function checkAttacks() {
+  if (isGameOver || isWin || !gameStarted || !firstCheckDone || cameraActive || cameraCooldown > 0 || !attackEnabled) return;
+  if (isPaused) return;
+  if (attackCooldown > 0) { attackCooldown--; return; }
+  
+  let leftAnim = (animatronicPositions.bonnie === 'hall' || animatronicPositions.freddy === 'hall');
+  let rightAnim = (animatronicPositions.chica === 'kitchen');
+  
+  if (leftAnim && !leftDoorClosed) {
+    if (anomalyMode) {
+      leftDoorTimer++;
+      let threshold = cheats.speedUp ? 8 : 15;
+      if (leftDoorTimer >= threshold) { triggerScreamer('attack'); attackCooldown = 6; leftDoorTimer = 0; return; }
+    } else {
+      let chance = cheats.speedUp ? 0.3 : (chaosMode ? 0.2 : 0.12);
+      if (Math.random() < chance) { triggerScreamer('attack'); attackCooldown = 6; return; }
+    }
+  } else { leftDoorTimer = 0; }
+  
+  if (rightAnim && !rightDoorClosed) {
+    if (anomalyMode) {
+      rightDoorTimer++;
+      let threshold = cheats.speedUp ? 8 : 15;
+      if (rightDoorTimer >= threshold) { triggerScreamer('attack'); attackCooldown = 6; rightDoorTimer = 0; return; }
+    } else {
+      let chance = cheats.speedUp ? 0.25 : (chaosMode ? 0.15 : 0.08);
+      if (Math.random() < chance) { triggerScreamer('attack'); attackCooldown = 6; return; }
+    }
+  } else { rightDoorTimer = 0; }
+}
+
+function processRetreat() {
+  if (!attackEnabled || isPaused) return;
+  let leftAnim = (animatronicPositions.bonnie === 'hall' || animatronicPositions.freddy === 'hall' || animatronicPositions.foxy === 'hall');
+  if (leftDoorClosed && leftAnim) {
+    leftDoorRetreatTimer++;
+    let retreatTime = cheats.speedUp ? 6 : 12;
+    if (leftDoorRetreatTimer >= retreatTime) {
+      if (animatronicPositions.bonnie === 'hall') {
+        let far = farRooms[Math.floor(Math.random() * farRooms.length)];
+        animatronicPositions.bonnie = far;
+      }
+      if (animatronicPositions.freddy === 'hall') {
+        let far = farRooms[Math.floor(Math.random() * farRooms.length)];
+        animatronicPositions.freddy = far;
+      }
+      if (animatronicPositions.foxy === 'hall') {
+        foxyState = 'pirate';
+        animatronicPositions.foxy = 'pirate';
+        foxyNextAttackTime = randomFoxyDelay();
+        foxyCooldown = 0;
+        updateFoxyDisplay();
+      }
+      leftDoorRetreatTimer = 0; leftDoorTimer = 0;
+      updateMap();
+    }
+  } else {
+    leftDoorRetreatTimer = 0;
+  }
+  let rightAnim = (animatronicPositions.chica === 'kitchen');
+  if (rightDoorClosed && rightAnim) {
+    rightDoorRetreatTimer++;
+    let retreatTime = cheats.speedUp ? 6 : 12;
+    if (rightDoorRetreatTimer >= retreatTime) {
+      if (animatronicPositions.chica === 'kitchen') {
+        let far = farRooms[Math.floor(Math.random() * farRooms.length)];
+        animatronicPositions.chica = far;
+      }
+      rightDoorRetreatTimer = 0; rightDoorTimer = 0;
+      updateMap();
+    }
+  } else {
+    rightDoorRetreatTimer = 0;
+  }
+}
+
+function drawClock() {
+  const w = clockCanvas.width, h = clockCanvas.height;
+  const cx = w/2, cy = h/2, radius = w/2 - 10;
+  ctx.clearRect(0, 0, w, h);
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI*2);
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fill();
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  for (let i = 0; i < 6; i++) {
+    let angle = (i / 6) * Math.PI*2 - Math.PI/2;
+    let len = (i % 1 === 0) ? radius*0.85 : radius*0.92;
+    let x1 = cx + Math.cos(angle) * radius*0.78;
+    let y1 = cy + Math.sin(angle) * radius*0.78;
+    let x2 = cx + Math.cos(angle) * len;
+    let y2 = cy + Math.sin(angle) * len;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    let num = i;
+    let nx = cx + Math.cos(angle) * radius*0.65;
+    let ny = cy + Math.sin(angle) * radius*0.65;
+    ctx.fillStyle = '#aaa';
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(num, nx, ny);
+  }
+  ctx.fillStyle = '#666';
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('мин', cx, cy + radius*0.45);
+  let progress = (360 - timeLeft) / 360;
+  let angle = progress * Math.PI*2 - Math.PI/2;
+  let arrowLen = radius * 0.75;
+  let ax = cx + Math.cos(angle) * arrowLen;
+  let ay = cy + Math.sin(angle) * arrowLen;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(ax, ay);
+  ctx.strokeStyle = '#0f0';
+  ctx.lineWidth = 4;
+  ctx.shadowColor = '#0f0';
+  ctx.shadowBlur = 10;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 5, 0, Math.PI*2);
+  ctx.fillStyle = '#0f0';
+  ctx.fill();
+}
+
+function showTimeLeft() {
+  let mins = Math.floor(timeLeft / 60);
+  let secs = timeLeft % 60;
+  alert('Осталось: ' + mins + ' мин ' + secs + ' сек');
+}
+
+function showWinScreen() {
+  isWin = true;
+  if (gameLoopInterval) {
+    clearInterval(gameLoopInterval);
+    gameLoopInterval = null;
+  }
+  winScreen.classList.add('show');
+}
+
+function updateDigitalTimer() {
+  let mins = Math.floor(timeLeft / 60);
+  let secs = timeLeft % 60;
+  digitalTimerEl.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
+}
+
+function gameLoop() {
+  if (isGameOver || isWin) return;
+  if (isPaused) return;
+  if (!gameStarted) { gameStarted = true; setTimeout(() => { firstCheckDone = true; }, 3000); setTimeout(() => { attackEnabled = true; }, 10000); return; }
+  if (cameraCooldown > 0) cameraCooldown--;
+  
+  applyCheats();
+  
+  let drain = 0.05 + (leftDoorClosed ? 0.35 : 0) + (rightDoorClosed ? 0.35 : 0) + (cameraActive ? 0.3 : 0);
+  if (!cheats.infinitePower) {
+    power = Math.max(0, power - drain);
+  } else {
+    power = 100;
+  }
+  powerEl.textContent = Math.floor(power);
+  if (power < 25 && !cheats.infinitePower) { powerEl.className = 'low'; powerAlert.style.display = 'block'; } else { powerEl.className = ''; powerAlert.style.display = 'none'; }
+  
+  if (power <= 0 && !cheats.infinitePower) {
+    leftDoorClosed = false;
+    rightDoorClosed = false;
+    leftDoorBtn.disabled = true;
+    rightDoorBtn.disabled = true;
+    document.getElementById('cameraBtn').disabled = true;
+    leftDoorBtn.className = 'doorBtn';
+    rightDoorBtn.className = 'doorBtn';
+    leftDoorBtn.textContent = '🚪 ЛЕВ (НЕТ ЭНЕРГИИ)';
+    rightDoorBtn.textContent = '🚪 ПРАВ (НЕТ ЭНЕРГИИ)';
+  } else {
+    if (power < 5 && !cheats.infinitePower) {
+      leftDoorBtn.disabled = true;
+      rightDoorBtn.disabled = true;
+      document.getElementById('cameraBtn').disabled = true;
+    } else {
+      leftDoorBtn.disabled = false;
+      rightDoorBtn.disabled = false;
+      document.getElementById('cameraBtn').disabled = false;
+    }
+  }
+  
+  let speed = cheats.speedUp ? 2 : 1;
+  timeLeft -= speed;
+  if (timeLeft < 0) timeLeft = 0;
+  
+  let moveInterval = anomalyMode ? 4 : 6;
+  if (cheats.speedUp) moveInterval = Math.max(2, Math.floor(moveInterval / 2));
+  if (timeLeft % moveInterval === 0) moveAnimatronics();
+  
+  checkAttacks();
+  processRetreat();
+  
+  if (leftDoorClosed || rightDoorClosed) { statusEl.textContent = 'Двери закрыты'; statusEl.style.color = '#00ccff'; }
+  if (timeLeft <= 0) { showWinScreen(); return; }
+  if (cameraActive) updateMap();
+  updateFoxyDisplay();
+  drawClock();
+  updateDigitalTimer();
+}
+
+function resetGame() {
+  timeLeft = 360; power = 100; leftDoorClosed = false; rightDoorClosed = false;
+  isGameOver = false; isWin = false; cameraActive = false; gameStarted = false;
+  firstCheckDone = false; attackCooldown = 0; cameraCooldown = 0; alertActive = false;
+  attackEnabled = false; lastThreatState = false; isPaused = false;
+  leftDoorTimer = 0; rightDoorTimer = 0; leftDoorRetreatTimer = 0; rightDoorRetreatTimer = 0;
+  pauseOverlay.classList.remove('show');
+  if (glitchTimeout) clearTimeout(glitchTimeout); glitchTimeout = null;
+  leftDoorBtn.className = 'doorBtn'; rightDoorBtn.className = 'doorBtn';
+  leftDoorBtn.textContent = '🚪 ЛЕВ'; rightDoorBtn.textContent = '🚪 ПРАВ';
+  leftDoorBtn.disabled = false; rightDoorBtn.disabled = false;
+  document.getElementById('cameraBtn').disabled = false;
+  statusEl.textContent = 'Безопасно'; statusEl.style.color = '#0f0';
+  powerEl.className = ''; powerAlert.style.display = 'none';
+  screamerEl.style.display = 'none'; glitchOverlay.style.display = 'none';
+  powerEl.textContent = '100';
+  document.getElementById('cameraBtn').textContent = '📹 КАМЕРЫ';
+  document.getElementById('map').style.borderColor = '#333';
+  camIndicator.style.display = 'none';
+  officeAlert.style.display = 'none'; officeAlert.className = 'officeAlert';
+  officeEl.classList.remove('danger-flash'); officeEl.classList.remove('safe-flash');
+  clearTimeout(alertTimeout);
+  resetFoxy();
+  animatronicPositions = { freddy: 'stage', bonnie: 'stage', chica: 'stage', foxy: 'pirate' };
+  for (let key in roomElements) animSpans[key].textContent = '';
+  updateFoxyDisplay();
+  updateMap();
+  drawClock();
+  updateDigitalTimer();
+  winScreen.classList.remove('show');
+}
+
+function startGame() {
+  menuEl.style.display = 'none';
+  officeEl.style.display = 'flex';
+  resetGame();
+  if (gameLoopInterval) clearInterval(gameLoopInterval);
+  gameLoopInterval = setInterval(gameLoop, 1000);
+}
+
+function handleNick() {
+  let nick = nickInput.value.trim();
+  if (nick === '') nick = 'Гость';
+  playerNick = nick;
+  let lowerNick = nick.toLowerCase();
+  let special = specialNicks[lowerNick];
+  if (special) {
+    welcomeMsg.textContent = special.msg;
+    welcomeMsg.style.color = '#ffaa00';
+    isSpecialNick = true;
+    chaosMode = special.chaos || false;
+    anomalyMode = special.anomaly || false;
+    isCheatUser = special.cheat || false;
+  } else {
+    welcomeMsg.textContent = 'Привет, ' + nick + '! Удачи!';
+    welcomeMsg.style.color = '#88ff88';
+    isSpecialNick = false;
+    chaosMode = false;
+    anomalyMode = false;
+    isCheatUser = false;
+  }
+  if (isCheatUser) {
+    cheatMenu.classList.add('show');
+    cheatToggleBtn.style.display = 'flex';
+    cheatToggleBtn.classList.add('show');
+  } else {
+    cheatMenu.classList.remove('show');
+    cheatToggleBtn.style.display = 'none';
+    cheatToggleBtn.classList.remove('show');
+  }
+  setTimeout(() => {
+    nickMenuEl.classList.add('hidden');
+    menuEl.style.display = 'flex';
+  }, 1200);
+}
+
+btnNickStart.addEventListener('click', handleNick);
+btnNickStart.addEventListener('touchstart', function(e) { e.preventDefault(); handleNick(); }, {passive: false});
+nickInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') handleNick(); });
+
+btnPlay.addEventListener('click', startGame);
+btnPlay.addEventListener('touchstart', function(e) { e.preventDefault(); startGame(); }, {passive: false});
+btnRestart.addEventListener('click', startGame);
+btnRestart.addEventListener('touchstart', function(e) { e.preventDefault(); startGame(); }, {passive: false});
+
+document.querySelectorAll('.cheat-btn').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    const cheat = this.dataset.cheat;
+    toggleCheat(cheat);
+  });
+  btn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    const cheat = this.dataset.cheat;
+    toggleCheat(cheat);
+  }, {passive: false});
+});
+
+cheatToggleBtn.addEventListener('click', function(e) {
+  e.stopPropagation();
+  cheatMenu.classList.toggle('show');
+  this.classList.toggle('show');
+});
+cheatToggleBtn.addEventListener('touchstart', function(e) {
+  e.preventDefault();
+  cheatMenu.classList.toggle('show');
+  this.classList.toggle('show');
+}, {passive: false});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Alt' && isCheatUser) {
+    e.preventDefault();
+    cheatMenu.classList.toggle('show');
+    cheatToggleBtn.classList.toggle('show');
+  }
+});
+
+function addTouchListener(el, handler) {
+  el.addEventListener('click', handler);
+  el.addEventListener('touchstart', function(e) { e.preventDefault(); handler(e); }, {passive: false});
+}
+
+addTouchListener(leftDoorBtn, () => {
+  if (power < 5 || isPaused || (power <= 0 && !cheats.infinitePower)) return;
+  leftDoorClosed = !leftDoorClosed;
+  leftDoorBtn.className = 'doorBtn' + (leftDoorClosed ? ' closed' : '');
+  leftDoorBtn.textContent = leftDoorClosed ? '🚪 ЛЕВ [ЗАКР]' : '🚪 ЛЕВ';
+  if (leftDoorClosed) { leftDoorTimer = 0; leftDoorRetreatTimer = 0; }
+  updateMap();
+});
+addTouchListener(rightDoorBtn, () => {
+  if (power < 5 || isPaused || (power <= 0 && !cheats.infinitePower)) return;
+  rightDoorClosed = !rightDoorClosed;
+  rightDoorBtn.className = 'doorBtn' + (rightDoorClosed ? ' closed' : '');
+  rightDoorBtn.textContent = rightDoorClosed ? '🚪 ПРАВ [ЗАКР]' : '🚪 ПРАВ';
+  if (rightDoorClosed) { rightDoorTimer = 0; rightDoorRetreatTimer = 0; }
+  updateMap();
+});
+
+addTouchListener(document.getElementById('cameraBtn'), () => {
+  if (power < 5 || isPaused || (power <= 0 && !cheats.infinitePower)) return;
+  cameraActive = !cameraActive;
+  document.getElementById('cameraBtn').textContent = cameraActive ? '📹 КАМ [ВКЛ]' : '📹 КАМЕРЫ';
+  document.getElementById('map').style.borderColor = cameraActive ? '#00ccff' : '#333';
+  camIndicator.style.display = cameraActive ? 'block' : 'none';
+  for (let key in roomElements) animSpans[key].textContent = '';
+  updateMap();
+});
+
+clockCanvas.addEventListener('click', showTimeLeft);
+clockCanvas.addEventListener('touchstart', function(e) { e.preventDefault(); showTimeLeft(); }, {passive: false});
+digitalTimerEl.addEventListener('click', showTimeLeft);
+digitalTimerEl.addEventListener('touchstart', function(e) { e.preventDefault(); showTimeLeft(); }, {passive: false});
+
+function togglePause() {
+  isPaused = !isPaused;
+  if (isPaused) { pauseOverlay.classList.add('show'); } else { pauseOverlay.classList.remove('show'); }
+}
+pauseBtn.addEventListener('click', togglePause);
+pauseBtn.addEventListener('touchstart', function(e) { e.preventDefault(); togglePause(); }, {passive: false});
+btnResume.addEventListener('click', togglePause);
+btnResume.addEventListener('touchstart', function(e) { e.preventDefault(); togglePause(); }, {passive: false});
+
+window.addEventListener('load', function() {
+  setTimeout(() => nickInput.focus(), 500);
+});
+
+resetGame();
+</script>
+</body>
+</html>
